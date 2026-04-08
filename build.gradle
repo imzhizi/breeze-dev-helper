@@ -1,0 +1,51 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij.platform' version '2.13.1'
+}
+
+group = 'com.imzhizi.breeze.devtools'
+version = '0.1.3'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+repositories {
+    mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    intellijPlatform {
+        local(findProperty('ideaLocalPath') ?: '/Applications/IntelliJ IDEA.app')
+        bundledPlugin 'com.intellij.java'
+        bundledPlugin 'org.intellij.plugins.markdown'
+        pluginVerifier()
+        zipSigner()
+    }
+}
+
+intellijPlatform {
+    pluginConfiguration {
+        ideaVersion {
+            sinceBuild = '261'
+        }
+    }
+    buildSearchableOptions = false
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+    options.compilerArgs += ['-parameters']
+}
+
+test {
+    useJUnitPlatform()
+}

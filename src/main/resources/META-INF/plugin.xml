@@ -1,0 +1,38 @@
+<idea-plugin>
+    <id>com.imzhizi.breeze.devtools</id>
+    <name>Breeze Dev Helper</name>
+    <vendor email="zhizi@imzhizi.com" url="https://imzhizi.com">zhizi</vendor>
+
+    <description><![CDATA[
+    <h2>Spec Dev Toolkit for IntelliJ IDEA</h2>
+    <p><b>Breeze Dev Helper</b> is an IDEA plugin for <b>Spec Dev</b> workflows. It organizes capabilities by functional areas so that specifications, documentation, and code can stay connected during development.</p>
+
+    <h3>1. Document Enhancement</h3>
+    <p>The current release focuses on document-to-code navigation in Markdown via <code>breeze-jump://</code> links.</p>
+    <p>Supported formats:</p>
+    <ul>
+      <li><code>breeze-jump://com.path.to.ClassName</code></li>
+      <li><code>breeze-jump://com.path.to.ClassName#methodName</code></li>
+      <li><code>breeze-jump://com.path.to.ClassName#fieldName</code></li>
+      <li><code>breeze-jump://com.path.to.ClassName:123</code></li>
+      <li><code>breeze-jump://com.path.to.ClassName#methodName:123</code></li>
+      <li><code>breeze-jump://com.path.to.ClassName#fieldName:123</code></li>
+    </ul>
+    <p>Navigation currently supports Java, Kotlin, and Scala symbols including classes, methods, fields, constants, enum members, and line-based navigation.</p>
+
+    <h3>2. Capability Layout</h3>
+    <p>Document enhancement is only one part of the plugin. Breeze Dev Helper is designed as a larger Spec Dev assistant and will continue to grow by capability modules.</p>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+    <depends>org.intellij.plugins.markdown</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <psi.referenceContributor language="Markdown" implementation="com.imzhizi.breeze.devtools.markdown.BreezeJumpReferenceContributor"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="org.intellij.markdown">
+        <browserPreviewExtensionProvider implementation="com.imzhizi.breeze.devtools.preview.BreezeJumpBrowserPreviewExtensionProvider"/>
+    </extensions>
+</idea-plugin>
