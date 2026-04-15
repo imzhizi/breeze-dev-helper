@@ -1,6 +1,14 @@
 (function() {
-  const scheme = 'breeze-jump://';
+  // Use the injected scheme from window.__breezeJumpScheme (set by the Java side),
+  // or fall back to the default if not available.
+  const defaultScheme = 'breeze-jump://';
   const eventName = 'breezeJumpOpenLink';
+
+  function getScheme() {
+    return (window.__breezeJumpScheme && window.__breezeJumpScheme.length > 0)
+        ? window.__breezeJumpScheme
+        : defaultScheme;
+  }
 
   function findAnchor(target) {
     if (!target) {
@@ -16,7 +24,7 @@
     }
 
     const href = anchor.getAttribute('href');
-    if (!href || !href.startsWith(scheme)) {
+    if (!href || !href.startsWith(getScheme())) {
       return;
     }
 

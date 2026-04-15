@@ -11,6 +11,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.imzhizi.breeze.devtools.settings.BreezeSettings;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.regex.Matcher;
@@ -18,14 +19,28 @@ import java.util.regex.Pattern;
 
 /**
  * Handles Cmd/Ctrl+B and Cmd/Ctrl+Click navigation for @spec annotations in code comments.
- * Format: @spec docs/specs/xxx-spec.md
+ * The annotation keyword is configurable via Settings → Tools → Breeze Dev Helper.
+ * Default format: @spec docs/specs/xxx-spec.md
  */
 public final class SpecJumpGotoDeclarationHandler implements GotoDeclarationHandler {
 
-    // Matches @spec followed by a relative path ending in .md (supports CJK characters)
-    private static final Pattern SPEC_PATTERN = Pattern.compile(
-            "@spec\\s+([^*\\s]+\\.md)"
-    );
+    /** Build a pattern from the configured keyword. Cached until keyword changes. */
+    private static volatile String  cachedKeyword = null;
+    private static volatile Pattern cachedPattern = null;
+
+    private static Pattern getPattern() {
+        String keyword = BreezeSettings.getInstance().specAnnotationKeyword;
+        if (keyword == null || keyword.isBlank()) {
+            keyword = "@spec";
+        }
+        if (!keyword.equals(cachedKeyword)) {
+            cachedKeyword = keyword;
+            cachedPattern = Pattern.compile(
+                    Pattern.quote(keyword) + "\\s+([^*\\s]+\\.md)"
+            );
+        }
+        return cachedPattern;
+    }
 
     @Override
     public PsiElement @Nullable [] getGotoDeclarationTargets(
@@ -43,7 +58,9 @@ public final class SpecJumpGotoDeclarationHandler implements GotoDeclarationHand
 
         // Find which @spec path (if any) the caret is positioned on
         String commentText = comment.getText();
-        if (commentText == null || !commentText.contains("@spec")) {
+        String keyword = BreezeSettings.getInstance().specAnnotationKeyword;
+        if (keyword == null || keyword.isBlank()) keyword = "@spec";
+        if (commentText == null || !commentText.contains(keyword)) {
             return null;
         }
 
@@ -86,7 +103,7 @@ public final class SpecJumpGotoDeclarationHandler implements GotoDeclarationHand
      * returns the @spec path if the caret is positioned over it, or null otherwise.
      */
     private static @Nullable String findPathAtCaret(String commentText, int caretPos) {
-        Matcher m = SPEC_PATTERN.matcher(commentText);
+        Matcher m = getPattern().matcher(commentText);
         while (m.find()) {
             int pathStart = m.start(1);
             int pathEnd   = m.end(1);

@@ -4,32 +4,50 @@
     <vendor email="zhizi@imzhizi.com" url="https://imzhizi.com">zhizi</vendor>
 
     <description><![CDATA[
-    <h2>Spec Dev Toolkit for IntelliJ IDEA</h2>
-    <p><b>Breeze Dev Helper</b> is an IDEA plugin for <b>Spec Dev</b> workflows. It organizes capabilities by functional areas so that specifications, documentation, and code can stay connected during development.</p>
+    <h2>Breeze Dev Helper —— 规范文档与代码双向跳转</h2>
+    <p>
+      <b>Breeze Dev Helper</b> 让规范文档与源代码保持关联。
+      在开发过程中，你可以随时在 Markdown 文档和 Java/Kotlin/Scala 源码之间双向跳转，
+      快速确认哪段代码实现了哪条需求。
+    </p>
 
-    <h3>1. Document Enhancement</h3>
-    <p>The current release focuses on document-to-code navigation in Markdown via <code>breeze-jump://</code> links.</p>
-    <p>Supported formats:</p>
+    <h3>📄 跳转到文档（代码注释 → Markdown 文档）</h3>
+    <p>
+      在 Java、Kotlin 或 Scala 的注释中写上 <code>@spec &lt;路径&gt;.md</code>，
+      对路径按下 Ctrl/Cmd+B 或 Ctrl/Cmd+点击，即可直接跳转到对应的 Markdown 文件。
+    </p>
+    <p>示例：</p>
+    <pre>
+  /**
+   * @spec docs/specs/my-feature-spec.md
+   */
+  public class MyService { ... }</pre>
+    <p>
+      路径相对于项目根目录解析，支持中文、日文、韩文等 CJK 字符的文件名和目录名。
+    </p>
+
+    <h3>🔗 跳转到代码（Markdown 文档 → 源代码）</h3>
+    <p>
+      在 Markdown 文档中放置 <code>spec-jump://</code> 链接，
+      按下 Ctrl/Cmd+B、Ctrl/Cmd+点击，或在预览面板中直接点击链接，
+      即可跳转到 Java、Kotlin 或 Scala 源文件中的指定位置。
+    </p>
+    <p>支持的链接格式：</p>
     <ul>
-      <li><code>breeze-jump://com.path.to.ClassName</code></li>
-      <li><code>breeze-jump://com.path.to.ClassName#methodName</code></li>
-      <li><code>breeze-jump://com.path.to.ClassName#fieldName</code></li>
-      <li><code>breeze-jump://com.path.to.ClassName:123</code></li>
-      <li><code>breeze-jump://com.path.to.ClassName#methodName:123</code></li>
-      <li><code>breeze-jump://com.path.to.ClassName#fieldName:123</code></li>
+      <li><code>spec-jump://com.example.MyClass</code> — 跳转到类</li>
+      <li><code>spec-jump://com.example.MyClass#myMethod</code> — 跳转到方法或字段</li>
+      <li><code>spec-jump://com.example.MyClass:42</code> — 跳转到指定行</li>
+      <li><code>spec-jump://com.example.MyClass#myMethod:42</code> — 方法 + 行偏移</li>
     </ul>
-    <p>Navigation currently supports Java, Kotlin, and Scala symbols including classes, methods, fields, constants, enum members, and line-based navigation.</p>
 
-    <h3>2. Spec Jump - Code to Document Navigation</h3>
-    <p>Jump from <code>@spec</code> annotations in code comments to corresponding markdown specification documents.</p>
-    <p>Supported formats:</p>
+    <h3>⚙️ 可自定义配置</h3>
+    <p>
+      两个关键词均可在 <b>设置 → 工具 → Breeze Dev Helper</b> 中自定义：
+    </p>
     <ul>
-      <li><code>@spec docs/specs/xxx-spec.md</code></li>
+      <li><b>注释关键词</b> — 默认 <code>@spec</code></li>
+      <li><b>链接协议前缀</b> — 默认 <code>spec-jump://</code></li>
     </ul>
-    <p>Usage: Place <code>@spec docs/specs/xxx-spec.md</code> in Java, Scala, or Kotlin comments, then use Ctrl/Cmd+B or Ctrl/Cmd+Click to navigate to the spec file.</p>
-
-    <h3>3. Capability Layout</h3>
-    <p>Document enhancement is only one part of the plugin. Breeze Dev Helper is designed as a larger Spec Dev assistant and will continue to grow by capability modules.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -37,7 +55,13 @@
     <depends>org.intellij.plugins.markdown</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <psi.referenceContributor language="Markdown" implementation="com.imzhizi.breeze.devtools.markdown.BreezeJumpReferenceContributor"/>
+        <applicationService serviceImplementation="com.imzhizi.breeze.devtools.settings.BreezeSettings"/>
+        <applicationConfigurable
+                parentId="tools"
+                instance="com.imzhizi.breeze.devtools.settings.BreezeSettingsConfigurable"
+                id="com.imzhizi.breeze.devtools.settings.BreezeSettingsConfigurable"
+                displayName="Breeze Dev Helper"/>
+        <gotoDeclarationHandler implementation="com.imzhizi.breeze.devtools.markdown.BreezeJumpGotoDeclarationHandler"/>
         <gotoDeclarationHandler implementation="com.imzhizi.breeze.devtools.spec.SpecJumpGotoDeclarationHandler"/>
     </extensions>
 
