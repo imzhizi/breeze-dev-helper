@@ -20,7 +20,15 @@
     </ul>
     <p>Navigation currently supports Java, Kotlin, and Scala symbols including classes, methods, fields, constants, enum members, and line-based navigation.</p>
 
-    <h3>2. Capability Layout</h3>
+    <h3>2. Spec Jump - Code to Document Navigation</h3>
+    <p>Jump from <code>@spec</code> annotations in code comments to corresponding markdown specification documents.</p>
+    <p>Supported formats:</p>
+    <ul>
+      <li><code>@spec docs/specs/xxx-spec.md</code></li>
+    </ul>
+    <p>Usage: Place <code>@spec docs/specs/xxx-spec.md</code> in Java, Scala, or Kotlin comments, then use Ctrl/Cmd+B or Ctrl/Cmd+Click to navigate to the spec file.</p>
+
+    <h3>3. Capability Layout</h3>
     <p>Document enhancement is only one part of the plugin. Breeze Dev Helper is designed as a larger Spec Dev assistant and will continue to grow by capability modules.</p>
     ]]></description>
 
@@ -30,6 +38,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <psi.referenceContributor language="Markdown" implementation="com.imzhizi.breeze.devtools.markdown.BreezeJumpReferenceContributor"/>
+        <gotoDeclarationHandler implementation="com.imzhizi.breeze.devtools.spec.SpecJumpGotoDeclarationHandler"/>
     </extensions>
 
     <extensions defaultExtensionNs="org.intellij.markdown">
