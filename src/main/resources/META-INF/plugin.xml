@@ -4,49 +4,42 @@
     <vendor email="zhizi@imzhizi.com" url="https://imzhizi.com">zhizi</vendor>
 
     <description><![CDATA[
-    <h2>Breeze Dev Helper —— 规范文档与代码双向跳转</h2>
     <p>
-      <b>Breeze Dev Helper</b> 让规范文档与源代码保持关联。
-      在开发过程中，你可以随时在 Markdown 文档和 Java/Kotlin/Scala 源码之间双向跳转，
-      快速确认哪段代码实现了哪条需求。
+      Breeze Dev Helper keeps specification documents and source code linked.
+      During development, you can jump bidirectionally between Markdown documents
+      and Java/Kotlin/Scala source code to quickly confirm which code implements
+      which requirement.
     </p>
 
-    <h3>📄 跳转到文档（代码注释 → Markdown 文档）</h3>
+    <h3>📄 Jump to Document (Code Comment → Markdown)</h3>
     <p>
-      在 Java、Kotlin 或 Scala 的注释中写上 <code>@spec &lt;路径&gt;.md</code>，
-      对路径按下 Ctrl/Cmd+B 或 Ctrl/Cmd+点击，即可直接跳转到对应的 Markdown 文件。
-    </p>
-    <p>示例：</p>
-    <pre>
-  /**
-   * @spec docs/specs/my-feature-spec.md
-   */
-  public class MyService { ... }</pre>
-    <p>
-      路径相对于项目根目录解析，支持中文、日文、韩文等 CJK 字符的文件名和目录名。
+      Write <code>@spec &lt;path&gt;.md</code> in a Java, Kotlin, or Scala comment,
+      then press <b>Ctrl/Cmd+B</b> or <b>Ctrl/Cmd+Click</b> on the path
+      to jump directly to the corresponding Markdown document.
     </p>
 
-    <h3>🔗 跳转到代码（Markdown 文档 → 源代码）</h3>
+    <h3>🔗 Jump to Code (Markdown → Source Code)</h3>
     <p>
-      在 Markdown 文档中放置 <code>spec-jump://</code> 链接，
-      按下 Ctrl/Cmd+B、Ctrl/Cmd+点击，或在预览面板中直接点击链接，
-      即可跳转到 Java、Kotlin 或 Scala 源文件中的指定位置。
+      Place a <code>spec-jump://</code> link in your Markdown file,
+      then press <b>Ctrl/Cmd+B</b>, <b>Ctrl/Cmd+Click</b>,
+      or click the link in the preview panel
+      to navigate to the specified location in Java/Kotlin/Scala source code.
     </p>
-    <p>支持的链接格式：</p>
+    <p>Supported link formats:</p>
     <ul>
-      <li><code>spec-jump://com.example.MyClass</code> — 跳转到类</li>
-      <li><code>spec-jump://com.example.MyClass#myMethod</code> — 跳转到方法或字段</li>
-      <li><code>spec-jump://com.example.MyClass:42</code> — 跳转到指定行</li>
-      <li><code>spec-jump://com.example.MyClass#myMethod:42</code> — 方法 + 行偏移</li>
+      <li><code>spec-jump://com.example.MyClass</code> – jump to class</li>
+      <li><code>spec-jump://com.example.MyClass#myMethod</code> – jump to method or field</li>
+      <li><code>spec-jump://com.example.MyClass:42</code> – jump to line number</li>
+      <li><code>spec-jump://com.example.MyClass#myMethod:42</code> – method + line offset</li>
     </ul>
 
-    <h3>⚙️ 可自定义配置</h3>
+    <h3>⚙️ Customizable Settings</h3>
     <p>
-      两个关键词均可在 <b>设置 → 工具 → Breeze Dev Helper</b> 中自定义：
+      Both keywords can be customized in <b>Settings → Tools → Breeze Dev Helper</b>:
     </p>
     <ul>
-      <li><b>注释关键词</b> — 默认 <code>@spec</code></li>
-      <li><b>链接协议前缀</b> — 默认 <code>spec-jump://</code></li>
+      <li><b>Comment Keyword</b> – default <code>@spec</code></li>
+      <li><b>Link Protocol Prefix</b> – default <code>spec-jump://</code></li>
     </ul>
     ]]></description>
 

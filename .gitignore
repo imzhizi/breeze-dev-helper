@@ -26,6 +26,7 @@ Thumbs.db
 # Local env
 .env
 .env.*
+gradle.local.properties
 
 # Generated sandbox and caches
 .intellijPlatform/

@@ -3,8 +3,20 @@ plugins {
     id 'org.jetbrains.intellij.platform' version '2.13.1'
 }
 
+// Load local secrets from gradle.local.properties (git-ignored)
+def localProperties = file('gradle.local.properties')
+if (localProperties.exists()) {
+    def props = new Properties()
+    localProperties.withInputStream { props.load(it) }
+    props.each { key, value ->
+        if (!project.hasProperty(key)) {
+            project.ext.set(key, value)
+        }
+    }
+}
+
 group = 'com.imzhizi.breeze.devtools'
-version = '0.1.9'
+version = '0.1.10'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
@@ -33,9 +45,34 @@ dependencies {
 
 intellijPlatform {
     pluginConfiguration {
+        version = project.version.toString()
+        changeNotes = '''
+            <ul>
+              <li>Initial JetBrains Marketplace release.</li>
+              <li>Support jumping from <code>@spec</code> comments to Markdown documents.</li>
+              <li>Support jumping from <code>spec-jump://</code> links in Markdown back to source code.</li>
+              <li>Allow customizing the comment keyword and URI protocol prefix in settings.</li>
+            </ul>
+        '''.stripIndent().trim()
         ideaVersion {
             sinceBuild = '261'
         }
+    }
+    publishing {
+        token = providers.environmentVariable('JETBRAINS_MARKETPLACE_TOKEN').orElse(
+                providers.gradleProperty('intellijPlatformPublishingToken')
+        )
+    }
+    signing {
+        certificateChain = providers.environmentVariable('JETBRAINS_CERTIFICATE_CHAIN').orElse(
+                providers.gradleProperty('intellijPlatformSigningCertificateChain')
+        )
+        privateKey = providers.environmentVariable('JETBRAINS_PRIVATE_KEY').orElse(
+                providers.gradleProperty('intellijPlatformSigningPrivateKey')
+        )
+        password = providers.environmentVariable('JETBRAINS_PRIVATE_KEY_PASSWORD').orElse(
+                providers.gradleProperty('intellijPlatformSigningPassword')
+        )
     }
     buildSearchableOptions = false
 }
