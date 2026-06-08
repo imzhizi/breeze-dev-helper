@@ -5,20 +5,43 @@
 
     <description><![CDATA[
     <p>
-      Breeze Dev Helper keeps specification documents and source code linked.
-      During development, you can jump bidirectionally between Markdown documents
-      and Java/Kotlin/Scala source code to quickly confirm which code implements
-      which requirement.
+      Breeze Dev Helper is a developer productivity plugin with two independent feature sets:
+      bidirectional navigation between source code and specification documents,
+      and an MCP server that lets AI assistants control IntelliJ's debugger directly.
     </p>
 
-    <h3>📄 Jump to Document (Code Comment → Markdown)</h3>
+    <h2>🤖 AI Debug Control (MCP Server)</h2>
+    <p>
+      Starts a local HTTP server (default port 19876) that exposes IntelliJ's debugger
+      via the <a href="https://modelcontextprotocol.io">Model Context Protocol</a>.
+      An AI assistant (e.g. Claude) can set breakpoints, inspect variables, evaluate
+      expressions, and step through code — without you touching the IDE manually.
+    </p>
+    <p>Exposed MCP tools include:</p>
+    <ul>
+      <li><b>create_remote_debug_config</b> – create a Remote JVM Debug run configuration;
+          automatically establishes an SSH tunnel through the jumper host</li>
+      <li><b>launch_debug / stop_debug</b> – connect and disconnect the debugger</li>
+      <li><b>add_breakpoint / remove_breakpoint / list_breakpoints</b> – manage breakpoints</li>
+      <li><b>get_debug_status</b> – returns RUNNING or PAUSED at file:line</li>
+      <li><b>read_variables / get_stack_frames</b> – inspect the current suspended frame</li>
+      <li><b>evaluate_expressions</b> – batch-evaluate Java expressions</li>
+      <li><b>step_over / step_into / step_out / resume_debug</b> – execution control</li>
+      <li><b>setup</b> – one-stop initialization: auto-detects idea CLI and jumper SSH settings</li>
+    </ul>
+    <p>
+      Configure the MCP endpoint in your AI client:
+      <code>http://localhost:19876/mcp</code>
+    </p>
+
+    <h2>📄 Jump to Document (Code Comment → Markdown)</h2>
     <p>
       Write <code>@spec &lt;path&gt;.md</code> in a Java, Kotlin, or Scala comment,
       then press <b>Ctrl/Cmd+B</b> or <b>Ctrl/Cmd+Click</b> on the path
       to jump directly to the corresponding Markdown document.
     </p>
 
-    <h3>🔗 Jump to Code (Markdown → Source Code)</h3>
+    <h2>🔗 Jump to Code (Markdown → Source Code)</h2>
     <p>
       Place a <code>spec-jump://</code> link in your Markdown file,
       then press <b>Ctrl/Cmd+B</b>, <b>Ctrl/Cmd+Click</b>,
@@ -33,11 +56,11 @@
       <li><code>spec-jump://com.example.MyClass#myMethod:42</code> – method + line offset</li>
     </ul>
 
-    <h3>⚙️ Customizable Settings</h3>
-    <p>
-      Both keywords can be customized in <b>Settings → Tools → Breeze Dev Helper</b>:
-    </p>
+    <h2>⚙️ Settings</h2>
+    <p>All options are under <b>Settings → Tools → Breeze Dev Helper</b>:</p>
     <ul>
+      <li><b>MCP Server</b> – enable/disable, listening port</li>
+      <li><b>Jumper SSH Tunnel</b> – MIS ID, jumper host, proxy script path, SSH key paths</li>
       <li><b>Comment Keyword</b> – default <code>@spec</code></li>
       <li><b>Link Protocol Prefix</b> – default <code>spec-jump://</code></li>
     </ul>
@@ -46,9 +69,15 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
     <depends>org.intellij.plugins.markdown</depends>
+    <depends>com.intellij.modules.xdebugger</depends>
+    <depends>org.jetbrains.plugins.terminal</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.imzhizi.breeze.devtools.settings.BreezeSettings"/>
+        <applicationService serviceImplementation="com.imzhizi.breeze.devtools.mcp.McpServerService"/>
+        <projectService serviceImplementation="com.imzhizi.breeze.devtools.mcp.tools.JumperTunnelManager"/>
+        <postStartupActivity implementation="com.imzhizi.breeze.devtools.mcp.McpStartupActivity"/>
+        <notificationGroup id="Breeze Dev Helper" displayType="BALLOON" isLogByDefault="true"/>
         <applicationConfigurable
                 parentId="tools"
                 instance="com.imzhizi.breeze.devtools.settings.BreezeSettingsConfigurable"

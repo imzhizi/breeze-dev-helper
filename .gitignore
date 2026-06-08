@@ -30,3 +30,6 @@ gradle.local.properties
 
 # Generated sandbox and caches
 .intellijPlatform/
+
+# Compiled output
+bin/

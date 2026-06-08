@@ -16,7 +16,7 @@ if (localProperties.exists()) {
 }
 
 group = 'com.imzhizi.breeze.devtools'
-version = '0.1.10'
+version = '0.4.3'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
@@ -38,6 +38,8 @@ dependencies {
         local(findProperty('ideaLocalPath') ?: '/Applications/IntelliJ IDEA.app')
         bundledPlugin 'com.intellij.java'
         bundledPlugin 'org.intellij.plugins.markdown'
+        bundledPlugin 'com.intellij.modules.xdebugger'
+        bundledPlugin 'org.jetbrains.plugins.terminal'
         pluginVerifier()
         zipSigner()
     }
