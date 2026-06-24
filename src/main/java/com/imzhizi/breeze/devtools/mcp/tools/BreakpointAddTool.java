@@ -125,29 +125,45 @@ public final class BreakpointAddTool implements McpTool {
                 }
 
                 String condition = McpJsonUtil.getString(args, "condition");
-                String finalCondition = (condition != null && !condition.isBlank()) ? condition : null;
+                String finalCondition = (condition != null && !condition.isBlank()) ? condition.trim() : null;
 
-                // Use XDebuggerUtil.toggleLineBreakpoint – same code path as clicking
-                // the gutter, so the gutter icon updates in real-time.
-                XDebuggerUtil.getInstance().toggleLineBreakpoint(project, bpType, file, line - 1);
-
-                // Set condition on the just-added breakpoint if requested.
-                // The write from toggleLineBreakpoint is committed asynchronously, so we
-                // schedule this in the next EDT cycle to ensure the breakpoint exists.
-                if (finalCondition != null) {
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        for (XLineBreakpoint<JavaLineBreakpointProperties> bp :
-                                bpManager.getBreakpoints(bpType)) {
-                            if (file.getUrl().equals(bp.getFileUrl()) && bp.getLine() == line - 1) {
-                                WriteAction.run(() -> bp.setCondition(finalCondition));
-                                break;
-                            }
+                // Create the breakpoint via bpManager.addLineBreakpoint() so we get a direct
+                // reference to the XLineBreakpoint object. This lets us set the condition
+                // synchronously on the SAME EDT cycle, inside a single WriteAction, with no
+                // async gap. (toggleLineBreakpoint registers the breakpoint asynchronously,
+                // which previously caused the condition to be lost when set right after.)
+                JavaLineBreakpointProperties props = new JavaLineBreakpointProperties();
+                final String cond = finalCondition;
+                String[] holder = new String[2]; // [0]=created?, [1]=verifiedCondition
+                WriteAction.run(() -> {
+                    XLineBreakpoint<JavaLineBreakpointProperties> bp =
+                            bpManager.addLineBreakpoint(bpType, file.getUrl(), line - 1, props);
+                    if (bp != null) {
+                        holder[0] = "created";
+                        if (cond != null) {
+                            bp.setCondition(cond);
+                            holder[1] = bp.getConditionExpression() != null
+                                    ? bp.getConditionExpression().getExpression()
+                                    : null;
                         }
-                    });
+                    }
+                });
+
+                if (holder[0] == null) {
+                    future.complete(McpJsonUtil.toolErrorResponse(id,
+                            "Failed to create breakpoint at " + className + ":" + line +
+                            " (addLineBreakpoint returned null)."));
+                    return;
                 }
 
                 String msg = "Breakpoint added at " + className + ":" + line;
-                if (finalCondition != null) msg += " (condition: " + finalCondition + ")";
+                if (cond != null) {
+                    msg += " (condition: " + cond + ")";
+                    String verified = holder[1];
+                    if (!cond.equals(verified)) {
+                        msg += " ⚠ verified reads back as: " + verified;
+                    }
+                }
                 future.complete(McpJsonUtil.successTextResponse(id, msg));
 
             } catch (Exception e) {

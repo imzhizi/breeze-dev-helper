@@ -32,8 +32,14 @@ import java.util.concurrent.TimeUnit;
  * The underlying IntelliJ API is {@code XBreakpoint.setCondition(String)}:
  *   - a non-null value installs/overwrites the condition;
  *   - null removes it.
- * This tool simply maps the empty/blank case to null so a single call site
- * handles add / update / delete uniformly.
+ *
+ * Implementation note: the breakpoint lookup AND the setCondition write are
+ * performed inside a single {@link WriteAction} (a write lock). This avoids
+ * the race condition where an interleaving EDT task (e.g. another MCP call or
+ * an IDE-internal breakpoint revalidation) could mutate the breakpoint
+ * between the read and the write, which previously caused the condition to
+ * appear "stuck" or revert to a stale value. After writing, the condition is
+ * re-read from the breakpoint to confirm the new state before returning.
  */
 public final class BreakpointConditionTool implements McpTool {
 
@@ -103,6 +109,10 @@ public final class BreakpointConditionTool implements McpTool {
             return McpJsonUtil.toolErrorResponse(id, "Java line breakpoint type not found.");
         }
 
+        String rawCondition = McpJsonUtil.getString(args, "condition");
+        String newCondition = (rawCondition != null && !rawCondition.isBlank())
+                ? rawCondition.trim() : null;
+
         CompletableFuture<String> future = new CompletableFuture<>();
 
         ApplicationManager.getApplication().invokeLater(() -> {
@@ -115,43 +125,57 @@ public final class BreakpointConditionTool implements McpTool {
 
                 XBreakpointManager bpManager = XDebuggerManager.getInstance(project).getBreakpointManager();
 
-                XLineBreakpoint<JavaLineBreakpointProperties> target = null;
-                for (XLineBreakpoint<JavaLineBreakpointProperties> bp : bpManager.getBreakpoints(bpType)) {
-                    if (bp.getLine() == line - 1) {
+                // Resolve the source VirtualFile once (read action) so we can match by URL too.
+                com.intellij.openapi.vfs.VirtualFile targetFile =
+                        BreakpointHelper.resolveSourceFile(project, className);
+
+                // Perform lookup + write inside ONE WriteAction so no other EDT task
+                // can interleave between finding the breakpoint and mutating it.
+                // holder[0]=oldCondition, holder[1]=verifiedCondition; null array => not found.
+                String[] holder = new String[2];
+                boolean[] notFound = new boolean[1];
+                WriteAction.run(() -> {
+                    XLineBreakpoint<JavaLineBreakpointProperties> target = null;
+                    for (XLineBreakpoint<JavaLineBreakpointProperties> bp : bpManager.getBreakpoints(bpType)) {
+                        if (bp.getLine() != line - 1) continue;
+
+                        // Prefer className match (friendly); fall back to fileUrl match.
                         String resolved = BreakpointHelper.resolveClassName(project, bp.getFileUrl());
-                        // Match on className for a friendly, fileUrl-independent lookup.
-                        // Fall back to fileUrl comparison when className can't be resolved.
                         boolean nameMatch = className.equals(resolved);
-                        boolean urlMatch = false;
-                        if (!nameMatch) {
-                            com.intellij.openapi.vfs.VirtualFile file =
-                                    BreakpointHelper.resolveSourceFile(project, className);
-                            urlMatch = file != null && file.getUrl().equals(bp.getFileUrl());
-                        }
+                        boolean urlMatch = targetFile != null
+                                && targetFile.getUrl().equals(bp.getFileUrl());
                         if (nameMatch || urlMatch) {
                             target = bp;
                             break;
                         }
                     }
-                }
 
-                if (target == null) {
+                    if (target == null) {
+                        notFound[0] = true;
+                        return;
+                    }
+
+                    holder[0] = target.getConditionExpression() != null
+                            ? target.getConditionExpression().getExpression()
+                            : null;
+
+                    target.setCondition(newCondition);
+
+                    // Re-read immediately to confirm the write took effect.
+                    holder[1] = target.getConditionExpression() != null
+                            ? target.getConditionExpression().getExpression()
+                            : null;
+                });
+
+                if (notFound[0]) {
                     future.complete(McpJsonUtil.toolErrorResponse(id,
                             "No line breakpoint found at " + className + ":" + line +
                             ". Use add_breakpoint to create one first."));
                     return;
                 }
 
-                String rawCondition = McpJsonUtil.getString(args, "condition");
-                String newCondition = (rawCondition != null && !rawCondition.isBlank())
-                        ? rawCondition.trim() : null;
-
-                String oldCondition = target.getConditionExpression() != null
-                        ? target.getConditionExpression().getExpression()
-                        : null;
-
-                XLineBreakpoint<JavaLineBreakpointProperties> finalTarget = target;
-                WriteAction.run(() -> finalTarget.setCondition(newCondition));
+                String oldCondition = holder[0];
+                String verifiedCondition = holder[1];
 
                 String msg;
                 if (newCondition == null) {
@@ -166,6 +190,17 @@ public final class BreakpointConditionTool implements McpTool {
                                     ? " (was: " + oldCondition + ")"
                                     : "");
                 }
+
+                // Surface a warning if the re-read didn't match what we tried to write.
+                // This catches cases where setCondition silently rejected the value
+                // (e.g. malformed expression that the IDE normalises).
+                if (newCondition != null && !newCondition.equals(verifiedCondition)) {
+                    msg += " ⚠ verified condition reads back as: " + verifiedCondition;
+                } else if (newCondition == null && verifiedCondition != null
+                        && !verifiedCondition.isBlank()) {
+                    msg += " ⚠ verified condition still present: " + verifiedCondition;
+                }
+
                 future.complete(McpJsonUtil.successTextResponse(id, msg));
 
             } catch (Exception e) {
