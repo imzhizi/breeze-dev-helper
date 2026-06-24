@@ -33,6 +33,7 @@ public final class McpToolDispatcher {
         register(new BreakpointAddTool());
         register(new BreakpointRemoveTool());
         register(new BreakpointListTool());
+        register(new BreakpointConditionTool());
         // Debug session lifecycle
         register(new RunConfigListTool());
         register(new RemoteDebugConfigCreateTool());
